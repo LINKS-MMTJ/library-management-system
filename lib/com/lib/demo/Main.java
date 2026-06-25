@@ -8,12 +8,9 @@ import com.lib.demo.api.ApiServer;
  */
 public class Main {
     public static void main(String[] args) {
-        int port = 8080;
-        if (args.length > 0) {
-            try { port = Integer.parseInt(args[0]); } catch (NumberFormatException ignored) {}
-        }
+        int port = AppConfig.getServerPort(args);
         try {
-            AppContext ctx = new AppContext();
+            AppContext ctx = AppContext.create();
             ApiServer server = new ApiServer(ctx, port);
             server.start();
             System.out.println("===================================");

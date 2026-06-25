@@ -1,7 +1,10 @@
 package com.lib.demo.dao;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 泛型 DAO 抽象基类，封装共用的 CRUD 模板方法。

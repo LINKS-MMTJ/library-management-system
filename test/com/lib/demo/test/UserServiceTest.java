@@ -2,6 +2,7 @@ package com.lib.demo.test;
 
 import com.lib.demo.entity.User;
 import com.lib.demo.exception.BusinessException;
+import com.lib.demo.util.PasswordUtil;
 
 /**
  * 用户模块测试 — 覆盖 UserService 全部方法
@@ -246,7 +247,7 @@ public class UserServiceTest extends TestBase {
             u.setPhone("999"); u.setRole(User.Role.LIBRARIAN); u.setStatus(User.Status.INACTIVE);
             User updated = ctx.getUserService().updateUser(borrower.getUserId(), u, admin);
             assertEquals("全改", updated.getName(), null);
-            assertEquals("newpwd", updated.getPassword(), null);
+            assertTrue(PasswordUtil.verify("newpwd", updated.getPassword()), "密码应正确哈希");
             assertEquals(User.Role.LIBRARIAN, updated.getRole(), null);
             assertEquals(User.Status.INACTIVE, updated.getStatus(), null);
         });
@@ -321,7 +322,7 @@ public class UserServiceTest extends TestBase {
         test("缴纳-无罚金时缴费", () -> {
             setUp();
             assertThrows(BusinessException.class,
-                    () -> ctx.getUserService().payFine(borrower.getUserId(), 1.0),
+                    () -> ctx.getUserService().payFine(borrower.getUserId(), 100),  // ¥1 = 100分
                     "无罚金时缴费应抛异常");
         });
 
@@ -336,7 +337,7 @@ public class UserServiceTest extends TestBase {
         test("缴纳-金额为负数", () -> {
             setUp();
             assertThrows(BusinessException.class,
-                    () -> ctx.getUserService().payFine(borrower.getUserId(), -1),
+                    () -> ctx.getUserService().payFine(borrower.getUserId(), -100),  // -¥1 = -100分
                     "金额为负应抛异常");
         });
 
@@ -344,27 +345,27 @@ public class UserServiceTest extends TestBase {
         test("缴纳-金额超过欠款", () -> {
             setUp();
             // 手动给用户加罚金
-            borrower.setUnpaidFine(5.0);
+            borrower.setUnpaidFine(500);  // ¥5 = 500分
             ctx.getUserDao().update(borrower);
             assertThrows(BusinessException.class,
-                    () -> ctx.getUserService().payFine(borrower.getUserId(), 10.0),
+                    () -> ctx.getUserService().payFine(borrower.getUserId(), 1000),  // ¥10 = 1000分
                     "缴纳金额超过欠款应抛异常");
         });
 
         test("缴纳-精确缴纳欠款", () -> {
             setUp();
-            borrower.setUnpaidFine(5.0);
+            borrower.setUnpaidFine(500);  // ¥5 = 500分
             ctx.getUserDao().update(borrower);
-            User u = ctx.getUserService().payFine(borrower.getUserId(), 5.0);
-            assertEquals(0.0, u.getUnpaidFine(), 0.001, "应全部缴清");
+            User u = ctx.getUserService().payFine(borrower.getUserId(), 500);
+            assertEquals(0L, u.getUnpaidFine(), "应全部缴清");
         });
 
         test("缴纳-部分缴纳", () -> {
             setUp();
-            borrower.setUnpaidFine(5.0);
+            borrower.setUnpaidFine(500);  // ¥5 = 500分
             ctx.getUserDao().update(borrower);
-            User u = ctx.getUserService().payFine(borrower.getUserId(), 2.0);
-            assertEquals(3.0, u.getUnpaidFine(), 0.001, "应剩余3.0");
+            User u = ctx.getUserService().payFine(borrower.getUserId(), 200);
+            assertEquals(300L, u.getUnpaidFine(), "应剩余3元 = 300分");
         });
     }
 

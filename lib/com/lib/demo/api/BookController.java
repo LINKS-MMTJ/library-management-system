@@ -6,7 +6,8 @@ import com.lib.demo.entity.User;
 import com.lib.demo.util.JsonUtil;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 图书控制器 — 图书 CRUD + 借阅/预约操作。
@@ -105,7 +106,7 @@ class BookController {
         return JsonUtil.successMsg("预约成功");
     }
 
-    private String get(Map<String, String> body, String key) {
+    private static String get(Map<String, String> body, String key) {
         String v = body.get(key);
         return (v == null || v.isEmpty()) ? null : v;
     }

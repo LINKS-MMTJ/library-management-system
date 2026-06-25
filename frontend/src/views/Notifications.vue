@@ -31,7 +31,7 @@ const typeLabels = { FINE: '[罚金]', OVERDUE_REMINDER: '[逾期]', RESERVATION
 function typeLabel(t) { return typeLabels[t] || '[通知]' }
 
 async function load() {
-  try { const r = await getNotifications(); list.value = r.data } catch (e) {}
+  try { const r = await getNotifications(); list.value = r.data } catch (e) { console.error('Notifications load failed:', e) }
 }
 async function doRead(id) {
   try { await markAsRead(id); emit('toast', '已标记'); await load() } catch (e) { emit('toast', e.message) }

@@ -101,13 +101,13 @@ const removeReason = ref('')
 
 async function search() { await loadBooks() }
 async function loadBooks() {
-  try { const r = await getBooks(keyword.value || undefined); books.value = r.data } catch (e) {}
+  try { const r = await getBooks(keyword.value || undefined); books.value = r.data } catch (e) { console.error('Books load failed:', e) }
 }
 function openDialog(id) {
   error.value = ''
   if (id) {
     editingId.value = id
-    getBook(id).then(r => { form.value = { ...r.data, quantity: 1, publishDate: r.data.publishDate || '' } }).catch(e => {})
+    getBook(id).then(r => { form.value = { ...r.data, quantity: 1, publishDate: r.data.publishDate || '' } }).catch(e => { console.error('Book detail load failed:', e) })
   } else {
     editingId.value = null
     form.value = { isbn:'', title:'', author:'', publisher:'', category:'', location:'', publishDate:'', quantity:1 }

@@ -47,7 +47,7 @@
             <tr><th>图书</th><th>借阅人</th><th>借阅日期</th><th>应还日期</th><th>状态</th></tr>
           </thead>
           <tbody>
-            <tr v-for="r in stats.recentRecords" :key="r.borrowDate+r.bookTitle">
+            <tr v-for="r in stats.recentRecords" :key="r.recordId">
               <td>{{ r.bookTitle }}</td>
               <td>{{ r.userName }}</td>
               <td>{{ r.borrowDate }}</td>
@@ -76,6 +76,6 @@ function statusClass(s) {
 }
 
 onMounted(async () => {
-  try { const r = await getDashboard(); stats.value = r.data } catch (e) {}
+  try { const r = await getDashboard(); stats.value = r.data } catch (e) { console.error('Dashboard load failed:', e) }
 })
 </script>

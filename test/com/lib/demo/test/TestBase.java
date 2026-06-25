@@ -19,7 +19,7 @@ public class TestBase {
     public void setUp() {
         // 清除旧数据，确保每次测试从干净状态开始
         cleanDataFiles();
-        ctx = new AppContext();
+        ctx = AppContext.create();
         admin = ctx.getUserDao().findByUsername("admin");
         librarian = ctx.getUserDao().findByUsername("lib1");
         borrower = ctx.getUserDao().findByUsername("user1");

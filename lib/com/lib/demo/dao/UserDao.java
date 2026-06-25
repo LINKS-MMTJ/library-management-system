@@ -2,7 +2,7 @@ package com.lib.demo.dao;
 
 import com.lib.demo.entity.User;
 
-import java.util.*;
+import java.util.List;
 
 /**
  * 用户数据访问对象。

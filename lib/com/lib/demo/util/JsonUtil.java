@@ -3,7 +3,12 @@ package com.lib.demo.util;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 轻量 JSON 工具（零外部依赖）。
@@ -76,72 +81,133 @@ public class JsonUtil {
                 .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
     }
 
-    /** 简单 JSON 解析（仅支持字符串值提取和一级对象） */
-    @SuppressWarnings("unchecked")
-    public static Map<String, String> parseSimple(String json) {
-        Map<String, String> map = new LinkedHashMap<>();
-        if (json == null || !json.contains("{")) return map;
-        json = json.trim();
-        json = json.substring(1, json.length() - 1).trim();
-        int i = 0;
-        while (i < json.length()) {
-            while (i < json.length() && (json.charAt(i) == ' ' || json.charAt(i) == ',' || json.charAt(i) == '\n' || json.charAt(i) == '\r')) i++;
-            if (i >= json.length()) break;
-            // 读取 key
-            if (json.charAt(i) == '"') {
-                int keyStart = i + 1;
-                int keyEnd = json.indexOf('"', keyStart);
-                String key = json.substring(keyStart, keyEnd);
-                i = keyEnd + 1;
-                while (i < json.length() && (json.charAt(i) == ' ' || json.charAt(i) == ':')) i++;
-                // 读取 value
-                if (i < json.length()) {
-                    if (json.charAt(i) == '"') {
-                        int valStart = i + 1;
-                        int valEnd = json.indexOf('"', valStart);
-                        map.put(key, json.substring(valStart, valEnd));
-                        i = valEnd + 1;
-                    } else if (json.charAt(i) == '{') {
-                        int depth = 1, valStart = i;
-                        i++;
-                        while (i < json.length() && depth > 0) {
-                            if (json.charAt(i) == '{') depth++;
-                            else if (json.charAt(i) == '}') depth--;
-                            i++;
-                        }
-                        map.put(key, json.substring(valStart, i));
-                    } else {
-                        int valStart = i;
-                        while (i < json.length() && json.charAt(i) != ',' && json.charAt(i) != '}') i++;
-                        map.put(key, json.substring(valStart, i).trim());
+    // ═══════════════════════════════════════════════════════
+    //  JSON 解析器 — 递归下降，支持嵌套对象/数组/转义
+    // ═══════════════════════════════════════════════════════
+
+    private static class Parser {
+        private final String input;
+        private int pos;
+
+        Parser(String input) { this.input = input; this.pos = 0; }
+
+        char peek() { return pos < input.length() ? input.charAt(pos) : '\0'; }
+        char next() { return pos < input.length() ? input.charAt(pos++) : '\0'; }
+
+        void skipWhitespace() {
+            while (pos < input.length() && Character.isWhitespace(input.charAt(pos))) pos++;
+        }
+
+        /** 解析 JSON 对象，返回 String→String Map */
+        Map<String, String> parseObject() {
+            Map<String, String> map = new LinkedHashMap<>();
+            skipWhitespace();
+            if (peek() != '{') return map;
+            next(); // skip '{'
+            while (true) {
+                skipWhitespace();
+                if (peek() == '}') { next(); break; }
+                if (peek() == ',') { next(); skipWhitespace(); continue; }
+                String key = parseString();
+                skipWhitespace();
+                if (peek() == ':') next();
+                else throw new RuntimeException("Expected ':' at " + pos);
+                skipWhitespace();
+                String value = parseValue();
+                map.put(key, value);
+            }
+            return map;
+        }
+
+        /** 解析字符串字面量（处理转义） */
+        String parseString() {
+            skipWhitespace();
+            if (peek() != '"') throw new RuntimeException("Expected '\"' at " + pos + ", got: " + peek());
+            next(); // skip opening '"'
+            StringBuilder sb = new StringBuilder();
+            while (pos < input.length()) {
+                char c = next();
+                if (c == '"') return sb.toString();
+                if (c == '\\') {
+                    char esc = next();
+                    switch (esc) {
+                        case '"': sb.append('"'); break;
+                        case '\\': sb.append('\\'); break;
+                        case '/': sb.append('/'); break;
+                        case 'n': sb.append('\n'); break;
+                        case 'r': sb.append('\r'); break;
+                        case 't': sb.append('\t'); break;
+                        case 'u':
+                            String hex = input.substring(pos, pos + 4);
+                            sb.append((char) Integer.parseInt(hex, 16));
+                            pos += 4;
+                            break;
+                        default: sb.append(esc);
                     }
+                } else {
+                    sb.append(c);
                 }
-            } else {
-                i++;
+            }
+            throw new RuntimeException("Unterminated string");
+        }
+
+        /** 解析值：字符串、数字、对象、数组、布尔、null */
+        String parseValue() {
+            skipWhitespace();
+            char c = peek();
+            if (c == '"') return parseString();
+            if (c == '{') {
+                int start = pos;
+                parseObject(); // consume but flatten to string
+                return input.substring(start, pos);
+            }
+            if (c == '[') {
+                int start = pos;
+                skipArray();
+                return input.substring(start, pos);
+            }
+            // 数字 / 布尔 / null — 读到分隔符
+            int start = pos;
+            while (pos < input.length() && ",}] \t\n\r".indexOf(input.charAt(pos)) == -1) pos++;
+            return input.substring(start, pos).trim();
+        }
+
+        void skipArray() {
+            if (peek() != '[') return;
+            next(); // '['
+            int depth = 1;
+            while (pos < input.length() && depth > 0) {
+                char c = next();
+                if (c == '"') { while (pos < input.length() && next() != '"'); }
+                else if (c == '[') depth++;
+                else if (c == ']') depth--;
             }
         }
-        return map;
     }
 
-    /** 从 JSON 对象中提取整数字段 */
+    /** 解析 JSON 对象，平铺为 String→String（嵌套值保留原始 JSON 片段） */
+    public static Map<String, String> parseSimple(String json) {
+        if (json == null || json.trim().isEmpty()) return Collections.emptyMap();
+        try {
+            return new Parser(json.trim()).parseObject();
+        } catch (Exception e) {
+            System.err.println("JSON 解析失败: " + e.getMessage());
+            return Collections.emptyMap();
+        }
+    }
+
+    /** 从 JSON Map 中提取 int */
     public static int getInt(Map<String, String> json, String key, int defaultVal) {
         String v = json.get(key);
-        if (v == null) return defaultVal;
+        if (v == null || v.isEmpty()) return defaultVal;
         try { return Integer.parseInt(v); } catch (NumberFormatException e) { return defaultVal; }
     }
 
-    /** 从 JSON 对象中提取 double 字段 */
-    public static double getDouble(Map<String, String> json, String key, double defaultVal) {
+    /** 从 JSON Map 中提取 long（用于金额·分） */
+    public static long getLong(Map<String, String> json, String key, long defaultVal) {
         String v = json.get(key);
-        if (v == null) return defaultVal;
-        try { return Double.parseDouble(v); } catch (NumberFormatException e) { return defaultVal; }
-    }
-
-    /** 从 JSON 对象中提取长整型字段 */
-    public static Long getLong(Map<String, String> json, String key) {
-        String v = json.get(key);
-        if (v == null) return null;
-        try { return Long.parseLong(v); } catch (NumberFormatException e) { return null; }
+        if (v == null || v.isEmpty()) return defaultVal;
+        try { return Long.parseLong(v); } catch (NumberFormatException e) { return defaultVal; }
     }
 
     /** 构建错误响应 JSON */

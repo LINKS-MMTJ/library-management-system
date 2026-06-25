@@ -14,7 +14,7 @@ import java.util.logging.Logger;
  */
 class FileStore {
     private static final Logger LOG = LogUtil.getLogger(FileStore.class);
-    static final String DATA_DIR = "library_data";
+    static final String DATA_DIR = com.lib.demo.AppConfig.getDataDir();
 
     static {
         ensureDataDir();

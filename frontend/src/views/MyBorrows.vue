@@ -2,7 +2,7 @@
   <div>
     <!-- 罚金提示 -->
     <div v-if="auth.user?.unpaidFine > 0" class="alert alert-danger">
-      <span>待缴罚金：¥{{ auth.user.unpaidFine.toFixed(2) }}</span>
+      <span>待缴罚金：¥{{ (auth.user.unpaidFine / 100).toFixed(2) }}</span>
       <button class="btn btn-danger btn-sm" @click="showPay = true">缴纳罚金</button>
     </div>
 
@@ -19,7 +19,7 @@
               <td>{{ r.borrowDate }}</td>
               <td>{{ r.dueDate }}</td>
               <td><span class="badge" :class="r.statusDesc === '已逾期' ? 'badge-danger' : 'badge-success'">{{ r.statusDesc }}</span></td>
-              <td>¥{{ r.fineAmount?.toFixed(2) }}</td>
+              <td>¥{{ (r.fineAmount / 100).toFixed(2) }}</td>
               <td>
                 <div class="btn-group">
                   <button class="btn btn-success btn-sm" @click="doReturn(r.recordId)">归还</button>
@@ -44,7 +44,7 @@
               <td>{{ r.bookTitle }}</td>
               <td>{{ r.borrowDate }}</td>
               <td>{{ r.returnDate || '-' }}</td>
-              <td>¥{{ r.fineAmount?.toFixed(2) }}</td>
+              <td>¥{{ (r.fineAmount / 100).toFixed(2) }}</td>
             </tr>
           </tbody>
         </table>
@@ -55,7 +55,7 @@
     <div v-if="showPay" class="modal-overlay" @click.self="showPay=false">
       <div class="modal-box" style="width:360px">
         <div class="modal-title">缴纳罚金</div>
-        <p style="margin-bottom:14px">当前欠款: <strong>¥{{ auth.user?.unpaidFine?.toFixed(2) }}</strong></p>
+        <p style="margin-bottom:14px">当前欠款: <strong>¥{{ (auth.user?.unpaidFine / 100).toFixed(2) }}</strong></p>
         <div class="form-group"><label class="form-label">缴纳金额</label><input class="form-input" type="number" v-model="payAmount" /></div>
         <div v-if="error" class="alert alert-danger">{{ error }}</div>
         <div class="modal-actions">
@@ -83,7 +83,7 @@ const unreturned = computed(() => records.value.filter(r => r.status !== 'RETURN
 const returned = computed(() => records.value.filter(r => r.status === 'RETURNED'))
 
 async function loadRecords() {
-  try { const r = await getMyBorrows(); records.value = r.data } catch (e) {}
+  try { const r = await getMyBorrows(); records.value = r.data } catch (e) { console.error('MyBorrows load failed:', e) }
 }
 async function doReturn(id) {
   if (!confirm('确认归还该图书？如有逾期将自动计算罚金。')) return
@@ -98,11 +98,11 @@ async function doRenew(r) {
 async function doPay() {
   error.value = ''
   try {
-    await payFine(auth.user.userId, payAmount.value)
+    await payFine(auth.user.userId, Math.round(payAmount.value * 100))
     emit('toast', '缴纳成功')
     showPay.value = false
     await auth.refreshUser()
   } catch (e) { error.value = e.message }
 }
-onMounted(() => { loadRecords(); payAmount.value = auth.user?.unpaidFine || 0 })
+onMounted(() => { loadRecords(); payAmount.value = (auth.user?.unpaidFine || 0) / 100 })
 </script>

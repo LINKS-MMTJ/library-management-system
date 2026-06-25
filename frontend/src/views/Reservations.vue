@@ -58,7 +58,7 @@ const active = computed(() => list.value.filter(r => r.status === 'ACTIVE'))
 const history = computed(() => list.value.filter(r => r.status !== 'ACTIVE'))
 
 async function load() {
-  try { const r = await getReservations(); list.value = r.data } catch (e) {}
+  try { const r = await getReservations(); list.value = r.data } catch (e) { console.error('Reservations load failed:', e) }
 }
 async function doCancel(id) {
   if (!confirm('确认取消该预约？')) return

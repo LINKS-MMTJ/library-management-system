@@ -1,8 +1,31 @@
+# ── 编译产物 ──
 out/
+*.class
+*.jar
+*.war
+
+# ── 运行时数据 ──
 library_data/
+*.dat
+*.ser
+*.tmp
+
+# ── 前端 ──
 node_modules/
 dist/
-*.class
-*.log
+.vite/
+
+# ── IDE ──
 .idea/workspace.xml
-*.tmp
+.idea/tasks.xml
+.idea/shelf/
+.vscode/
+*.iml
+
+# ── 日志 ──
+*.log
+
+# ── 操作系统 ──
+.DS_Store
+Thumbs.db
+desktop.ini

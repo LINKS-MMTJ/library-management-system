@@ -1,5 +1,6 @@
 package com.lib.demo.api;
 
+import com.lib.demo.AppConfig;
 import com.lib.demo.AppContext;
 import com.lib.demo.entity.User;
 import com.lib.demo.util.JsonUtil;
@@ -14,7 +15,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -27,8 +31,27 @@ public class ApiServer {
     private final HttpServer server;
     private final AppContext ctx;
 
-    // Token 会话管理
-    private final Map<String, User> sessions = new ConcurrentHashMap<>();
+    /** Token 有效期（毫秒），通过 AppConfig 配置，默认 24 小时 */
+    private static final long TOKEN_TTL_MS = AppConfig.getTokenTtlMs();
+
+    /** 会话信息 */
+    static class SessionInfo {
+        final User user;
+        final long expireAt;
+        SessionInfo(User user) { this.user = user; this.expireAt = System.currentTimeMillis() + TOKEN_TTL_MS; }
+        boolean isExpired() { return System.currentTimeMillis() > expireAt; }
+    }
+
+    // Token 会话管理（每 30 分钟清理过期 session）
+    private final Map<String, SessionInfo> sessions = new ConcurrentHashMap<>();
+    {
+        java.util.Timer timer = new java.util.Timer(true);
+        timer.schedule(new java.util.TimerTask() {
+            @Override public void run() {
+                sessions.entrySet().removeIf(e -> e.getValue().isExpired());
+            }
+        }, TOKEN_TTL_MS, 30 * 60 * 1000L);
+    }
 
     // 子控制器
     private final AuthController authCtrl;
@@ -39,6 +62,7 @@ public class ApiServer {
     private final NotificationController notifCtrl;
     private final SystemController systemCtrl;
 
+    @SuppressWarnings("this-escape")
     public ApiServer(AppContext ctx, int port) throws IOException {
         this.ctx = ctx;
         this.server = HttpServer.create(new InetSocketAddress(port), 0);
@@ -62,7 +86,7 @@ public class ApiServer {
         server.setExecutor(null); // 使用默认 executor
     }
 
-    private String findStaticDir() {
+    private static String findStaticDir() {
         String[] candidates = {"frontend/dist", "../frontend/dist", "lib2/frontend/dist"};
         for (String dir : candidates) {
             Path p = Paths.get(dir);
@@ -164,6 +188,7 @@ public class ApiServer {
                     Map<String, Object> m = new LinkedHashMap<>();
                     var b = ctx.getBookDao().findById(r.getBookId());
                     var u = ctx.getUserDao().findById(r.getUserId());
+                    m.put("recordId", r.getRecordId());
                     m.put("bookTitle", b != null ? b.getTitle() : "未知");
                     m.put("userName", u != null ? u.getName() : "未知");
                     m.put("borrowDate", r.getBorrowDate().toString());
@@ -179,7 +204,10 @@ public class ApiServer {
     User getAuthUser(HttpExchange ex) {
         String auth = ex.getRequestHeaders().getFirst("Authorization");
         if (auth != null && auth.startsWith("Bearer ")) {
-            return sessions.get(auth.substring(7));
+            SessionInfo session = sessions.get(auth.substring(7));
+            if (session != null && !session.isExpired()) {
+                return session.user;
+            }
         }
         return null;
     }
@@ -202,7 +230,7 @@ public class ApiServer {
 
     // ── HTTP 工具方法 ──
 
-    private boolean needsBody(String method) {
+    private static boolean needsBody(String method) {
         return "POST".equals(method) || "PUT".equals(method) || "DELETE".equals(method);
     }
 
@@ -247,6 +275,7 @@ public class ApiServer {
     }
 
     static void addCors(HttpExchange ex) {
+        // 开发模式允许任意来源访问；生产部署时应限制为具体域名
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         ex.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         ex.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -254,6 +283,7 @@ public class ApiServer {
 
     // ── 自定义 HTTP 业务异常 ──
     static class BusinessHttpException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
         private final int code;
         BusinessHttpException(int code, String msg) { super(msg); this.code = code; }
         int getCode() { return code; }

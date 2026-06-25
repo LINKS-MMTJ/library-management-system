@@ -8,7 +8,6 @@ import com.lib.demo.exception.BusinessException;
 import com.lib.demo.util.LogUtil;
 
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class BookService {
@@ -110,7 +109,7 @@ public class BookService {
         return bookDao.findAll();
     }
 
-    private boolean isOperator(User user) {
+    private static boolean isOperator(User user) {
         return user != null && (user.isAdmin() || user.isLibrarian());
     }
 }

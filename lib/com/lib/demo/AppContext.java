@@ -22,7 +22,15 @@ public class AppContext {
     private final ReservationService reservationService;
     private final NotificationService notificationService;
 
-    public AppContext() {
+    /** 工厂方法：创建并初始化上下文（含种子数据） */
+    public static AppContext create() {
+        AppContext ctx = new AppContext();
+        DataSeeder.seedIfEmpty(ctx);
+        return ctx;
+    }
+
+    /** 包级可见构造器（测试可直接 new 以跳过种子数据） */
+    AppContext() {
         NotificationService ns = new NotificationService(notificationDao);
 
         this.borrowService = new BorrowService(borrowRecordDao, bookDao, userDao, reservationDao);
@@ -33,8 +41,6 @@ public class AppContext {
 
         this.borrowService.setNotificationService(ns);
         this.reservationService.setNotificationService(ns);
-
-        DataSeeder.seedIfEmpty(this);
     }
 
     // ── Getter ──

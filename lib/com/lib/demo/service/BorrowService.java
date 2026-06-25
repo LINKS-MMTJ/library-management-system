@@ -4,7 +4,11 @@ import com.lib.demo.dao.BookDao;
 import com.lib.demo.dao.BorrowRecordDao;
 import com.lib.demo.dao.ReservationDao;
 import com.lib.demo.dao.UserDao;
-import com.lib.demo.entity.*;
+import com.lib.demo.entity.Book;
+import com.lib.demo.entity.BorrowRecord;
+import com.lib.demo.entity.Notification;
+import com.lib.demo.entity.Reservation;
+import com.lib.demo.entity.User;
 import com.lib.demo.exception.BusinessException;
 import com.lib.demo.util.LogUtil;
 
@@ -17,7 +21,7 @@ import java.util.logging.Logger;
 public class BorrowService {
     private static final Logger LOG = LogUtil.getLogger(BorrowService.class);
     private static final int MAX_BORROW_DAYS = 30;
-    private static final double FINE_PER_DAY = 0.5;
+    private static final long FINE_PER_DAY = 50;  // 每天 ¥0.50 = 50 分
     private static final int MAX_RENEWALS = 2;
     private static final int RENEWAL_EXTENSION_DAYS = 15;
 
@@ -61,7 +65,7 @@ public class BorrowService {
             throw new BusinessException("您有图书已逾期未还，需先归还后才能继续借阅");
         }
         if (user.getUnpaidFine() > 0) {
-            throw new BusinessException("您有未支付的罚金 ¥" + String.format("%.2f", user.getUnpaidFine()) + "，需先处理");
+            throw new BusinessException("您有未支付的罚金 ¥" + centsToYuan(user.getUnpaidFine()) + "，需先处理");
         }
 
         BorrowRecord record = new BorrowRecord();
@@ -98,7 +102,7 @@ public class BorrowService {
         Book book = bookDao.findById(record.getBookId());
         record.returnBook();
 
-        double fine = calculateFine(record);
+        long fine = calculateFine(record);
         if (fine > 0) {
             record.setFineAmount(fine);
             User user = userDao.findById(record.getUserId());
@@ -108,7 +112,7 @@ public class BorrowService {
             }
             if (notificationService != null) {
                 notificationService.send(record.getUserId(), "您有一笔逾期罚金: ¥" +
-                        String.format("%.2f", fine) + "，请及时缴纳。", Notification.Type.FINE);
+                        centsToYuan(fine) + "，请及时缴纳。", Notification.Type.FINE);
             }
         }
         borrowRecordDao.update(record);
@@ -120,7 +124,7 @@ public class BorrowService {
         }
 
         LOG.info("还书: recordId=" + recordId + " 图书=《" + (book != null ? book.getTitle() : "未知") +
-                "》 罚金=" + String.format("%.2f", fine));
+                "》 罚金=" + centsToYuan(fine));
         return record;
     }
 
@@ -145,11 +149,11 @@ public class BorrowService {
         return record;
     }
 
-    public double calculateFine(BorrowRecord record) {
-        if (record == null || record.getDueDate() == null) return 0.0;
+    public long calculateFine(BorrowRecord record) {
+        if (record == null || record.getDueDate() == null) return 0;
         LocalDate endDate = record.getReturnDate() != null ? record.getReturnDate() : LocalDate.now();
         long overdueDays = ChronoUnit.DAYS.between(record.getDueDate(), endDate);
-        return overdueDays > 0 ? overdueDays * FINE_PER_DAY : 0.0;
+        return overdueDays > 0 ? overdueDays * FINE_PER_DAY : 0;
     }
 
     public List<BorrowRecord> getUserRecords(Long userId) {
@@ -234,7 +238,11 @@ public class BorrowService {
         return hasOverdue;
     }
 
-    private boolean isOperator(User user) {
+    private static String centsToYuan(long cents) {
+        return String.format("%.2f", cents / 100.0);
+    }
+
+    private static boolean isOperator(User user) {
         return user != null && (user.isAdmin() || user.isLibrarian());
     }
 

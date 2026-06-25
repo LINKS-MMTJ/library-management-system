@@ -2,7 +2,10 @@ package com.lib.demo.service;
 
 import com.lib.demo.dao.BookDao;
 import com.lib.demo.dao.ReservationDao;
-import com.lib.demo.entity.*;
+import com.lib.demo.entity.Book;
+import com.lib.demo.entity.Notification;
+import com.lib.demo.entity.Reservation;
+import com.lib.demo.entity.User;
 import com.lib.demo.exception.BusinessException;
 import com.lib.demo.util.LogUtil;
 

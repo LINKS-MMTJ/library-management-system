@@ -5,7 +5,8 @@ import com.lib.demo.entity.Notification;
 import com.lib.demo.entity.User;
 import com.lib.demo.util.JsonUtil;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 通知控制器 — 列表/未读数/标记已读。

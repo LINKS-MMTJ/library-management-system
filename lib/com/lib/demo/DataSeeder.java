@@ -1,8 +1,10 @@
 package com.lib.demo;
 
-import com.lib.demo.entity.*;
+import com.lib.demo.entity.Book;
+import com.lib.demo.entity.User;
 import com.lib.demo.service.BookService;
 import com.lib.demo.service.UserService;
+import com.lib.demo.util.PasswordUtil;
 
 import java.time.LocalDate;
 
@@ -30,7 +32,7 @@ final class DataSeeder {
         // ─── 种子用户（直接通过 DAO 插入，绕过 Service 权限检查） ───
         User admin = new User();
         admin.setUsername("admin");
-        admin.setPassword("admin123");
+        admin.setPassword(PasswordUtil.hash("admin123"));
         admin.setName("系统管理员");
         admin.setRole(User.Role.ADMIN);
         admin.setStatus(User.Status.ACTIVE);
@@ -38,7 +40,7 @@ final class DataSeeder {
 
         User librarian = new User();
         librarian.setUsername("lib1");
-        librarian.setPassword("lib123");
+        librarian.setPassword(PasswordUtil.hash("lib123"));
         librarian.setName("图书管理员");
         librarian.setRole(User.Role.LIBRARIAN);
         librarian.setStatus(User.Status.ACTIVE);
@@ -46,7 +48,7 @@ final class DataSeeder {
 
         User user1 = new User();
         user1.setUsername("user1");
-        user1.setPassword("user123");
+        user1.setPassword(PasswordUtil.hash("user123"));
         user1.setName("张三");
         user1.setRole(User.Role.BORROWER);
         user1.setStatus(User.Status.ACTIVE);

@@ -4,16 +4,18 @@ import com.lib.demo.AppContext;
 import com.lib.demo.entity.User;
 import com.lib.demo.util.JsonUtil;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * 认证控制器 — 登录/注册/获取当前用户。
  */
 class AuthController {
     private final AppContext ctx;
-    private final Map<String, User> sessions;
+    private final Map<String, ApiServer.SessionInfo> sessions;
 
-    AuthController(AppContext ctx, Map<String, User> sessions) {
+    AuthController(AppContext ctx, Map<String, ApiServer.SessionInfo> sessions) {
         this.ctx = ctx;
         this.sessions = sessions;
     }
@@ -35,10 +37,10 @@ class AuthController {
         User user = ctx.getUserService().login(username, password);
         if (user == null) throw new ApiServer.BusinessHttpException(401, "用户名或密码错误");
         String token = UUID.randomUUID().toString();
-        sessions.put(token, user);
+        sessions.put(token, new ApiServer.SessionInfo(user));
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("token", token);
-        result.put("user", user);
+        result.put("user", sanitizeUser(user));
         return JsonUtil.successJson(JsonUtil.toJson(result));
     }
 
@@ -47,13 +49,19 @@ class AuthController {
                name = body.get("name"), email = body.get("email"), phone = body.get("phone");
         User user = ctx.getUserService().register(username, password, name,
                 isEmpty(email) ? null : email, isEmpty(phone) ? null : phone);
-        return JsonUtil.successJson(JsonUtil.toJson(user));
+        return JsonUtil.successJson(JsonUtil.toJson(sanitizeUser(user)));
     }
 
     private String getMe(User user) {
         ApiServer.requireAuth(user);
-        return JsonUtil.successJson(JsonUtil.toJson(user));
+        return JsonUtil.successJson(JsonUtil.toJson(sanitizeUser(user)));
     }
 
-    private boolean isEmpty(String s) { return s == null || s.trim().isEmpty(); }
+    /** 生成不含密码字段的用户副本，避免哈希泄露到前端 */
+    private static User sanitizeUser(User user) {
+        user.setPassword(null);
+        return user;
+    }
+
+    private static boolean isEmpty(String s) { return s == null || s.trim().isEmpty(); }
 }

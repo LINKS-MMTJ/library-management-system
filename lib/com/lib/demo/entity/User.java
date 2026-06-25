@@ -27,7 +27,7 @@ public class User implements Serializable {
     private String email;
     private String phone;
     private Status status;
-    private double unpaidFine;
+    private long unpaidFine;  // 单位: 分 (550 = ¥5.50)
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
@@ -45,8 +45,8 @@ public class User implements Serializable {
     public void setPhone(String phone) { this.phone = phone; }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
-    public double getUnpaidFine() { return unpaidFine; }
-    public void setUnpaidFine(double unpaidFine) { this.unpaidFine = unpaidFine; }
+    public long getUnpaidFine() { return unpaidFine; }
+    public void setUnpaidFine(long unpaidFine) { this.unpaidFine = unpaidFine; }
 
     public boolean isAdmin() { return Role.ADMIN.equals(this.role); }
     public boolean isLibrarian() { return Role.LIBRARIAN.equals(this.role); }

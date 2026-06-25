@@ -1,6 +1,8 @@
 package com.lib.demo.test;
 
-import com.lib.demo.entity.*;
+import com.lib.demo.entity.Book;
+import com.lib.demo.entity.BorrowRecord;
+import com.lib.demo.entity.User;
 import com.lib.demo.exception.BusinessException;
 
 import java.time.LocalDate;
@@ -146,7 +148,7 @@ public class BorrowServiceTest extends TestBase {
         // --- 有未缴罚金 ---
         test("借书-有罚金时不能借", () -> {
             setUp();
-            borrower.setUnpaidFine(5.0);
+            borrower.setUnpaidFine(500);  // ¥5.00 = 500分
             ctx.getUserDao().update(borrower);
             Book b = ctx.getBookService().getAllBooks().get(0);
             assertThrows(BusinessException.class,
@@ -207,11 +209,11 @@ public class BorrowServiceTest extends TestBase {
             r.setDueDate(LocalDate.now().minusDays(5));
             ctx.getBorrowRecordDao().update(r);
             BorrowRecord ret = ctx.getBorrowService().returnBookByRecordId(r.getRecordId(), admin);
-            double fine = ctx.getBorrowService().calculateFine(ret);
+            long fine = ctx.getBorrowService().calculateFine(ret);
             assertTrue(fine > 0, "逾期应有罚金: " + fine);
-            assertEquals(5 * 0.5, fine, 0.001, "5天逾期=¥2.5");
+            assertEquals(250L, fine, "5天逾期=250分=¥2.50");
             User u = ctx.getUserDao().findById(borrower.getUserId());
-            assertEquals(fine, u.getUnpaidFine(), 0.001, "罚金已累加到用户");
+            assertEquals(fine, u.getUnpaidFine(), "罚金已累加到用户");
         });
     }
 
@@ -301,33 +303,33 @@ public class BorrowServiceTest extends TestBase {
         System.out.println("\n  ▸ 黑盒: 罚金计算 (边界值分析)");
 
         test("罚金-边界: record为null", () -> {
-            setUp(); assertEquals(0.0, ctx.getBorrowService().calculateFine(null), 0.001, "null=0");
+            setUp(); assertEquals(0L, ctx.getBorrowService().calculateFine(null), "null=0");
         });
 
         test("罚金-边界: dueDate为null", () -> {
             setUp(); BorrowRecord r = new BorrowRecord();
-            assertEquals(0.0, ctx.getBorrowService().calculateFine(r), 0.001, "dueDate=null → 0");
+            assertEquals(0L, ctx.getBorrowService().calculateFine(r), "dueDate=null → 0");
         });
 
         test("罚金-边界: 逾期0天(刚好到期日)", () -> {
             setUp(); BorrowRecord r = new BorrowRecord();
             r.setDueDate(LocalDate.now());
             r.setReturnDate(LocalDate.now());
-            assertEquals(0.0, ctx.getBorrowService().calculateFine(r), 0.001, "0天逾期=0");
+            assertEquals(0L, ctx.getBorrowService().calculateFine(r), "0天逾期=0");
         });
 
         test("罚金-边界: 逾期1天", () -> {
             setUp(); BorrowRecord r = new BorrowRecord();
             r.setDueDate(LocalDate.now().minusDays(1));
             r.setReturnDate(LocalDate.now());
-            assertEquals(0.5, ctx.getBorrowService().calculateFine(r), 0.001, "1天=¥0.5");
+            assertEquals(50L, ctx.getBorrowService().calculateFine(r), "1天=50分=¥0.50");
         });
 
         test("罚金-边界: 逾期30天", () -> {
             setUp(); BorrowRecord r = new BorrowRecord();
             r.setDueDate(LocalDate.now().minusDays(30));
             r.setReturnDate(LocalDate.now());
-            assertEquals(15.0, ctx.getBorrowService().calculateFine(r), 0.001, "30天=¥15");
+            assertEquals(1500L, ctx.getBorrowService().calculateFine(r), "30天=1500分=¥15.00");
         });
     }
 

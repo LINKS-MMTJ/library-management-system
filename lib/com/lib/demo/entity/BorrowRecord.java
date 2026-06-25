@@ -22,7 +22,7 @@ public class BorrowRecord implements Serializable {
     private LocalDate borrowDate;
     private LocalDate dueDate;
     private LocalDate returnDate;
-    private double fineAmount;
+    private long fineAmount;  // 单位: 分 (50 = ¥0.50)
     private Status status;
     private int renewCount;
 
@@ -43,8 +43,8 @@ public class BorrowRecord implements Serializable {
     public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
     public LocalDate getReturnDate() { return returnDate; }
     public void setReturnDate(LocalDate returnDate) { this.returnDate = returnDate; }
-    public double getFineAmount() { return fineAmount; }
-    public void setFineAmount(double fineAmount) { this.fineAmount = fineAmount; }
+    public long getFineAmount() { return fineAmount; }
+    public void setFineAmount(long fineAmount) { this.fineAmount = fineAmount; }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
     public int getRenewCount() { return renewCount; }

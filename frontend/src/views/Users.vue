@@ -17,7 +17,7 @@
               <td>{{ u.name }}</td>
               <td>{{ roleLabel(u.role) }}</td>
               <td><span class="badge" :class="u.status === 'ACTIVE' ? 'badge-success' : 'badge-gray'">{{ u.status === 'ACTIVE' ? '正常' : '禁用' }}</span></td>
-              <td>¥{{ u.unpaidFine?.toFixed(2) }}</td>
+              <td>¥{{ (u.unpaidFine / 100).toFixed(2) }}</td>
               <td>
                 <div class="btn-group">
                   <button class="btn btn-gray btn-sm" @click="openDialog(u.userId)">编辑</button>
@@ -84,7 +84,7 @@ function roleLabel(r) {
   return '借阅者'
 }
 async function loadUsers() {
-  try { const r = await getUsers(); users.value = r.data } catch (e) {}
+  try { const r = await getUsers(); users.value = r.data } catch (e) { console.error('Users load failed:', e) }
 }
 function openDialog(id) {
   error.value = ''
@@ -92,7 +92,7 @@ function openDialog(id) {
     editingId.value = id
     getUser(id).then(r => {
       form.value = { ...r.data, password: '', newPassword: '', status: r.data.status || 'ACTIVE', role: r.data.role || 'BORROWER' }
-    }).catch(e => {})
+    }).catch(e => { console.error('User detail load failed:', e) })
   } else {
     editingId.value = null
     form.value = { username:'', password:'', name:'', email:'', phone:'', role:'BORROWER', status:'ACTIVE', newPassword:'' }

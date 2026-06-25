@@ -4,6 +4,7 @@ import com.lib.demo.dao.UserDao;
 import com.lib.demo.entity.User;
 import com.lib.demo.exception.BusinessException;
 import com.lib.demo.util.LogUtil;
+import com.lib.demo.util.PasswordUtil;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -25,7 +26,7 @@ public class UserService {
 
         User user = new User();
         user.setUsername(username);
-        user.setPassword(password);
+        user.setPassword(PasswordUtil.hash(password));
         user.setName(name);
         user.setEmail(email);
         user.setPhone(phone);
@@ -40,7 +41,7 @@ public class UserService {
     public User login(String username, String password) {
         if (username == null || password == null) return null;
         User user = userDao.findByUsername(username);
-        if (user != null && password.equals(user.getPassword()) && user.isActive()) {
+        if (user != null && PasswordUtil.verify(password, user.getPassword()) && user.isActive()) {
             LOG.info("用户登录: " + username + " (" + user.getRole().getDescription() + ")");
             return user;
         }
@@ -64,7 +65,7 @@ public class UserService {
 
         User user = new User();
         user.setUsername(username);
-        user.setPassword(password);
+        user.setPassword(PasswordUtil.hash(password));
         user.setName(name);
         user.setRole(role);
         user.setStatus(status);
@@ -89,7 +90,7 @@ public class UserService {
             }
             user.setUsername(newUsername);
         }
-        if (updatedInfo.getPassword() != null) user.setPassword(updatedInfo.getPassword());
+        if (updatedInfo.getPassword() != null) user.setPassword(PasswordUtil.hash(updatedInfo.getPassword()));
         if (updatedInfo.getName() != null) user.setName(updatedInfo.getName());
         if (updatedInfo.getRole() != null) user.setRole(updatedInfo.getRole());
         if (updatedInfo.getStatus() != null) user.setStatus(updatedInfo.getStatus());
@@ -129,17 +130,17 @@ public class UserService {
 
     // ==================== 罚金管理 ====================
 
-    public User payFine(Long userId, double amount) {
+    public User payFine(Long userId, long amountCents) {
         User user = userDao.findById(userId);
         if (user == null) throw new BusinessException("用户不存在");
         if (user.getUnpaidFine() <= 0) throw new BusinessException("没有待缴纳的罚金");
-        if (amount <= 0) throw new BusinessException("缴纳金额必须大于0");
-        if (amount > user.getUnpaidFine()) throw new BusinessException("缴纳金额超过欠款");
+        if (amountCents <= 0) throw new BusinessException("缴纳金额必须大于0");
+        if (amountCents > user.getUnpaidFine()) throw new BusinessException("缴纳金额超过欠款");
 
-        user.setUnpaidFine(user.getUnpaidFine() - amount);
+        user.setUnpaidFine(user.getUnpaidFine() - amountCents);
         userDao.update(user);
-        LOG.info("用户 " + user.getUsername() + " 缴纳罚金: ¥" + String.format("%.2f", amount) +
-                "，剩余: ¥" + String.format("%.2f", user.getUnpaidFine()));
+        LOG.info("用户 " + user.getUsername() + " 缴纳罚金: ¥" + centsStr(amountCents) +
+                "，剩余: ¥" + centsStr(user.getUnpaidFine()));
         return user;
     }
 
@@ -149,5 +150,9 @@ public class UserService {
 
     public void updateUser(User user) {
         userDao.update(user);
+    }
+
+    private static String centsStr(long cents) {
+        return String.format("%.2f", cents / 100.0);
     }
 }

@@ -2,7 +2,7 @@ package com.lib.demo.dao;
 
 import com.lib.demo.entity.Notification;
 
-import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**

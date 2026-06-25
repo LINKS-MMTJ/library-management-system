@@ -1,6 +1,9 @@
 package com.lib.demo.test;
 
-import com.lib.demo.entity.*;
+import com.lib.demo.entity.Book;
+import com.lib.demo.entity.Notification;
+import com.lib.demo.entity.Reservation;
+import com.lib.demo.entity.User;
 import com.lib.demo.exception.BusinessException;
 
 import java.util.List;

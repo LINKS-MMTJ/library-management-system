@@ -4,7 +4,7 @@ import com.lib.demo.AppContext;
 import com.lib.demo.entity.User;
 import com.lib.demo.util.JsonUtil;
 
-import java.util.*;
+import java.util.Map;
 
 /**
  * 用户管理控制器 — 管理员 CRUD + 禁用/启用/删除。
@@ -96,19 +96,19 @@ class UserController {
 
     private String payFine(Long id, Map<String, String> body, User user) {
         ApiServer.requireAuth(user);
-        double amount = JsonUtil.getDouble(body, "amount", 0);
-        ctx.getUserService().payFine(id, amount);
+        long amountCents = JsonUtil.getLong(body, "amount", 0);  // 前端传的是分
+        ctx.getUserService().payFine(id, amountCents);
         User updated = ctx.getUserDao().findById(id);
         return JsonUtil.successJson(JsonUtil.toJson(updated));
     }
 
-    private User.Role parseRole(String role) {
+    private static User.Role parseRole(String role) {
         if ("ADMIN".equals(role)) return User.Role.ADMIN;
         if ("LIBRARIAN".equals(role)) return User.Role.LIBRARIAN;
         return User.Role.BORROWER;
     }
 
-    private String get(Map<String, String> body, String key) {
+    private static String get(Map<String, String> body, String key) {
         String v = body.get(key);
         return (v == null || v.isEmpty()) ? null : v;
     }

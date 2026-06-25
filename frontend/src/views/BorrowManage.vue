@@ -11,7 +11,7 @@
               <td>{{ r.bookTitle }}</td>
               <td>{{ r.userName }}</td>
               <td>{{ r.dueDate }}</td>
-              <td style="color:var(--danger);font-weight:600">¥{{ r.fineAmount?.toFixed(2) }}</td>
+              <td style="color:var(--danger);font-weight:600">¥{{ (r.fineAmount / 100).toFixed(2) }}</td>
             </tr>
           </tbody>
         </table>
@@ -53,7 +53,7 @@ const active = computed(() => records.value.filter(r => r.status !== 'RETURNED')
 const overdue = computed(() => active.value.filter(r => r.statusDesc === '已逾期'))
 
 async function loadRecords() {
-  try { const r = await getAllBorrows(); records.value = r.data } catch (e) {}
+  try { const r = await getAllBorrows(); records.value = r.data } catch (e) { console.error('Borrows load failed:', e) }
 }
 async function doReturn(id) {
   if (!confirm('确认归还该图书？')) return
