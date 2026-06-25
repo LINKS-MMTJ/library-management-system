@@ -12,9 +12,16 @@ api.interceptors.request.use(config => {
   return config
 })
 
-// 响应拦截器：401 时清除登录状态
+// 响应拦截器：检查业务 code + 401 时清除登录状态
 api.interceptors.response.use(
-  res => res.data,
+  res => {
+    const data = res.data
+    // 服务端始终返回 HTTP 200，业务错误通过 JSON code 字段区分
+    if (data && data.code && data.code !== 200) {
+      return Promise.reject(new Error(data.message || '请求失败'))
+    }
+    return data
+  },
   err => {
     if (err.response?.status === 401) {
       const auth = useAuthStore()
