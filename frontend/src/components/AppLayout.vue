@@ -1,3 +1,4 @@
+<!-- Author: LINKS -->
 <template>
   <div class="app-layout">
     <aside class="sidebar">

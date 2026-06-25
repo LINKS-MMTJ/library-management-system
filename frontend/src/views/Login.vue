@@ -1,3 +1,4 @@
+<!-- Author: LINKS -->
 <template>
   <div class="login-page">
     <div class="login-card">
