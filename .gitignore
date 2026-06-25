@@ -1,0 +1,8 @@
+out/
+library_data/
+node_modules/
+dist/
+*.class
+*.log
+.idea/workspace.xml
+*.tmp

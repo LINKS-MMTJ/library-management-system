@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(java -version)",
+      "Bash(javac -version)",
+      "Bash(where javac *)",
+      "Bash(java -cp out/production/lib2 com.lib.demo.test.AllTests)",
+      "Bash(where java *)",
+      "Read(//c/Program Files/Java/**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Bash(/f/develop/java/java11/bin/javac -version)",
+      "Bash(/f/develop/java/java11/bin/java -version)",
+      "Bash(/f/develop/java/java11/bin/java -cp out/production/lib2 com.lib.demo.test.AllTests)"
+    ]
+  }
+}
