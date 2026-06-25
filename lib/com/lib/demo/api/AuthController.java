@@ -40,7 +40,7 @@ class AuthController {
         sessions.put(token, new ApiServer.SessionInfo(user));
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("token", token);
-        result.put("user", sanitizeUser(user));
+        result.put("user", toSafeMap(user));
         return JsonUtil.successJson(JsonUtil.toJson(result));
     }
 
@@ -49,18 +49,26 @@ class AuthController {
                name = body.get("name"), email = body.get("email"), phone = body.get("phone");
         User user = ctx.getUserService().register(username, password, name,
                 isEmpty(email) ? null : email, isEmpty(phone) ? null : phone);
-        return JsonUtil.successJson(JsonUtil.toJson(sanitizeUser(user)));
+        return JsonUtil.successJson(JsonUtil.toJson(toSafeMap(user)));
     }
 
     private String getMe(User user) {
         ApiServer.requireAuth(user);
-        return JsonUtil.successJson(JsonUtil.toJson(sanitizeUser(user)));
+        return JsonUtil.successJson(JsonUtil.toJson(toSafeMap(user)));
     }
 
-    /** 生成不含密码字段的用户副本，避免哈希泄露到前端 */
-    private static User sanitizeUser(User user) {
-        user.setPassword(null);
-        return user;
+    /** 将用户转为不含密码的 Map，不修改原始对象（防止污染 DAO/Session 中的共享引用） */
+    private static Map<String, Object> toSafeMap(User u) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("userId", u.getUserId());
+        m.put("username", u.getUsername());
+        m.put("name", u.getName());
+        m.put("role", u.getRole());
+        m.put("status", u.getStatus());
+        m.put("email", u.getEmail());
+        m.put("phone", u.getPhone());
+        m.put("unpaidFine", u.getUnpaidFine());
+        return m;
     }
 
     private static boolean isEmpty(String s) { return s == null || s.trim().isEmpty(); }
